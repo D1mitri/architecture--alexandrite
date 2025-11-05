@@ -1,0 +1,104 @@
+Мотивация
+
+Мониторинг позволяет быстрее решать возникающие проблемы и помогает повысить надёжность системы. Если в работе системы возникает проблема, команда может оперативно отреагировать и сфокусироваться на решении еще до того, как проблема обретет массовый характер и посыпятся жалобы от пользователей, что может повлиять на репутацию продукта и компании.
+На данный момент жалоб от клиентов на просроченные заказы стало больше и на основании утверждения о том, что производственные мощности позволяют справиться с заказами и могут обеспечить двукратный рост, можно сделать вывод, что есть проблема на уровне системы. Наблюдаемость в свою очередь способствует оптимизации процессов и сокращению количества ошибок.
+Чтобы повысить удовлетворённость пользователей и улучшить пользовательский опыт в целом предлагается добавить систему мониторинга.
+
+Выбор подхода к мониторингу
+
+Чтобы заметить аномалии в работе заранее и быстро среагировать на ситуацию, для CRM API, MES API и API онлайн-магазина будет использоваться подход "Четыре золотых сигнала от Google".
+В онлайн-магазине, RabbitMQ и для запросов к базам данных для измерения показателей, которые важны для конечных пользователей, будет использоваться подход RED.
+
+Выбор метрик
+
+При подходе "Четыре золотых сигнала от Google" добавить мониторинг следующих метрик:
+- задержка:
+Response time (latency) for CRM API
+Response time (latency) for MES API
+Response time (latency) for shop API
+- трафик:
+Kb tranferred (received) for shop API
+Kb tranferred (received) for CRM API
+Kb tranferred (received) for MES API
+Kb provided (sent) for shop API
+Kb provided (sent) for CRM API
+Kb provided (sent) for MES API
+- ошибки:
+Number of HTTP 200 for shop API
+Number of HTTP 200 for CRM API
+Number of HTTP 200 for MES API
+Number of HTTP 500 for shop API
+Number of HTTP 500 for CRM API
+Number of HTTP 500 for MES API
+- насыщенность:
+Memory Utilisation for CRM API
+Memory Utilisation for MES API
+Memory Utilisation for shop API
+Memory Utilisation for MES db instance
+CPU % for shop API
+CPU % for CRM API
+CPU % for MES API
+Size of MES db instance
+Number of message in flight in RabbitMQ
+
+При подходе RED добавить мониторинг следующих метрик:
+- Requests Rate:
+Number of requests (RPS) for CRM API
+Number of requests (RPS) for MES API
+Number of requests (RPS) for internet shop API
+- Errors:
+Number of HTTP 400 for CRM API
+Number of HTTP 400 for MES API
+Number of HTTP 400 for shop API
+Number of dead-letter-exchange letters in RabbitMQ
+- Duration:
+Number of requests (RPS) per user for CRM API
+Number of requests (RPS) per user for MES API
+Number of requests (RPS) per user for internet shop API
+
+План действий
+
+Response time (latency) for API:
+- Настроить сбор перцентилей времени ответа с помощью Prometheus для каждого эндпоинта.
+
+Kb transferred (received) for API:
+- Добавить метрики размера входящих HTTP-запросов через nginx логи с экспортом в мониторинг.
+
+Kb provided (sent) for API:
+- Реализовать сбор объема исходящего трафика через кастомные метрики на уровне приложения или балансировщика.
+
+Number of HTTP 200 for API: 
+- Настроить счетчики успешных ответов при помощи Prometheus counter.
+
+Number of HTTP 500 for API:
+- Создать счетчики ошибок сервера с алертами и порогом срабатывания при превышении 1% от общего трафика.
+
+Memory Utilisation for API:
+- Настроить сбор использования памяти через node-exporter и привязать к конкретным сервисам через labels.
+
+CPU % for API:
+- Реализовать мониторинг загрузки CPU контейнеров с помощью системных метрик.
+
+Size of MES db instance:
+- Настроить регулярный сбор размера БД через запросы к системным таблицам и экспорт в мониторинг.
+
+Number of message in flight in RabbitMQ:
+- Внедрить сбор метрики через RabbitMQ exporter и настроить алерты на аномальный рост.
+
+Number of requests (RPS) for API:
+- Реализовать подсчет запросов в секунду через rate() функции в Prometheus на основе счетчиков.
+
+Number of HTTP 400 for API:
+- Настроить отдельные счетчики для клиентских ошибок с фильтрацией по коду ответа.
+
+Number of dead-letter-exchange letters in RabbitMQ:
+- Создать критический алерт на любое ненулевое значение сообщений в DLX.
+
+Number of requests (RPS) per user for API:
+- Внедрить детализированный мониторинг через гистограммы с лейблом пользователя для выявления аномалий.
+
+Дополнительное задание
+
+Для "Size of MES db instance" настроить алерты на оставшийся размер БД, если размер БД будет превышать 80% места на диске. В качестве решения - увеличение размера диска.
+
+Для "Number of message in flight in RabbitMQ" настроить алерты, если в очереди 1000 сообщений в обработке, а консьюмеры отключились и сообщения не обработаны. В качестве решения - helth check и перезагрузка.
